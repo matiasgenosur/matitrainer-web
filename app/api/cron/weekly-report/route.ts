@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY || 'placeholder')
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  })
 }
 
 function formatMin(min: number): string {
@@ -123,14 +129,12 @@ export async function GET(request: Request) {
   const dateLabel = (d: Date) => d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
   const subject = `MatiTrainer — Semana ${dateLabel(start)} al ${dateLabel(end)} ${end.getFullYear()}`
 
-  const { error } = await getResend().emails.send({
-    from: 'MatiTrainer <onboarding@resend.dev>',
+  await getTransporter().sendMail({
+    from: `MatiTrainer <${process.env.GMAIL_USER}>`,
     to: ['matias.gutierrez@genosur.com', 'Dparaudb@outlook.com'],
     subject,
     html,
   })
-
-  if (error) return NextResponse.json({ error }, { status: 500 })
 
   return NextResponse.json({ sent: true, activities: (acts || []).length })
 }
