@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import nodemailer from 'nodemailer'
+import { google } from 'googleapis'
 
-function getTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  })
+function getGmailClient() {
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  )
+  auth.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN })
+  return google.gmail({ version: 'v1', auth })
+}
+
+function buildRawEmail(to: string[], subject: string, html: string, from: string): string {
+  const boundary = 'matitrainer_boundary'
+  const message = [
+    `From: MatiTrainer <${from}>`,
+    `To: ${to.join(', ')}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html,
+    `--${boundary}--`,
+  ].join('\r\n')
+  return Buffer.from(message).toString('base64url')
 }
 
 function formatMin(min: number): string {
@@ -129,11 +146,13 @@ export async function GET(request: Request) {
   const dateLabel = (d: Date) => d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
   const subject = `MatiTrainer — Semana ${dateLabel(start)} al ${dateLabel(end)} ${end.getFullYear()}`
 
-  await getTransporter().sendMail({
-    from: `MatiTrainer <${process.env.GMAIL_USER}>`,
-    to: ['matias.gutierrez@genosur.com', 'Dparaudb@outlook.com'],
-    subject,
-    html,
+  const from = process.env.GMAIL_USER || 'matias.gutierrez@genosur.com'
+  const to = ['matias.gutierrez@genosur.com', 'Dparaudb@outlook.com']
+  const raw = buildRawEmail(to, subject, html, from)
+
+  await getGmailClient().users.messages.send({
+    userId: 'me',
+    requestBody: { raw },
   })
 
   return NextResponse.json({ sent: true, activities: (acts || []).length })
