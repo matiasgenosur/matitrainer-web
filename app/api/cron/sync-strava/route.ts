@@ -38,15 +38,35 @@ function mapActivity(a: any) {
   const avgHr = a.average_heartrate || null
   const fcPct = avgHr && MAX_HR > 0 ? Math.round((avgHr / MAX_HR) * 1000) / 10 : null
 
+  // Timestamps
+  const startedAt = a.start_date_local || null
+  const elapsedSec = a.elapsed_time || a.moving_time || 0
+  const endedAt = startedAt
+    ? new Date(new Date(startedAt).getTime() + elapsedSec * 1000).toISOString()
+    : null
+
+  // Location (lat/lng available in list; city/country only in detail endpoint)
+  const startLat = Array.isArray(a.start_latlng) && a.start_latlng.length === 2 ? a.start_latlng[0] : null
+  const startLng = Array.isArray(a.start_latlng) && a.start_latlng.length === 2 ? a.start_latlng[1] : null
+
   return {
     id: a.id,
     name: a.name,
     type: a.type,
     date: a.start_date_local.slice(0, 10),
+    started_at: startedAt,
+    ended_at: endedAt,
+    start_lat: startLat,
+    start_lng: startLng,
+    city: a.location_city || null,
+    country: a.location_country || null,
     distance_km: distanceKm,
     moving_time_min: movingTimeMin,
     elevation_m: a.total_elevation_gain || 0,
-    calories: a.kilojoules ? Math.round(a.kilojoules * 0.239) : 0,
+    // kilojoules only reliable for cycling (power meter); estimate for runs
+    calories: a.kilojoules && a.kilojoules >= 50
+      ? Math.round(a.kilojoules * 0.239)
+      : Math.round(movingTimeMin * 9),
     avg_hr: avgHr,
     max_hr: a.max_heartrate || null,
     pace_min_km: paceMinKm,
