@@ -65,8 +65,8 @@ export default function ActivityRow({ activity, index }: ActivityRowProps) {
               <div
                 className="h-full rounded-full"
                 style={{
-                  width: `${Math.min(100, (activity.fatigue_score / 350) * 100)}%`,
-                  background: activity.fatigue_score > 250 ? '#ef4444' : activity.fatigue_score > 150 ? '#f59e0b' : '#22c55e',
+                  width: `${Math.min(100, activity.fatigue_score)}%`,
+                  background: activity.fatigue_score >= 80 ? '#ef4444' : activity.fatigue_score >= 50 ? '#f59e0b' : '#22c55e',
                 }}
               />
             </div>
