@@ -28,7 +28,7 @@ export default function RecommendationCard({ recommendation: rec }: Recommendati
         </div>
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wider" style={{ color: rec.color }}>
-            Hoy te recomendamos
+            Hoy, {new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Santiago' })}, te recomendamos
           </p>
           <h3 className="text-lg font-bold text-white">{rec.title}</h3>
           <p className="text-sm text-gray-400">{rec.description}</p>

@@ -1,38 +1,61 @@
 import { getActivities, getWeeklyStats, calculateACWR, getTodayRecommendation } from '@/lib/data'
-import { formatPace, formatDistance, formatTime, getActivityIcon, formatDate } from '@/lib/utils'
+import { formatPace } from '@/lib/utils'
+import { createClient } from '@supabase/supabase-js'
 import Nav from '@/components/nav'
 import MetricCard from '@/components/metric-card'
 import WeeklyChart from '@/components/weekly-chart'
 import ACWRGauge from '@/components/acwr-gauge'
 import RecommendationCard from '@/components/recommendation-card'
-import DashboardClient from './dashboard-client'
+import DashboardPeriodView from '@/components/dashboard-period-view'
+import RecoveryClock from '@/components/recovery-clock'
+
+async function getTrainingPlans() {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
+    const until = new Date(today + 'T00:00:00')
+    until.setDate(until.getDate() + 30)
+    const untilStr = until.toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('training_plans')
+      .select('*')
+      .gte('date', today)
+      .lte('date', untilStr)
+      .order('date')
+    return data || []
+  } catch {
+    return []
+  }
+}
 
 export default async function DashboardPage() {
-  const activities = await getActivities()
+  const [activities, trainingPlans] = await Promise.all([getActivities(), getTrainingPlans()])
   const weeklyStats = getWeeklyStats(activities)
   const acwr = calculateACWR(activities)
   const recommendation = getTodayRecommendation(activities)
 
-  // KPI calculations
-  const totalKm = activities.reduce((s, a) => s + a.distance_km, 0)
-  const totalHours = activities.reduce((s, a) => s + a.moving_time_min, 0) / 60
-  const totalElevation = activities.reduce((s, a) => s + a.elevation_m, 0)
-  const totalCalories = activities.reduce((s, a) => s + a.calories, 0)
-  const avgFatigue = activities.length > 0
-    ? activities.reduce((s, a) => s + a.fatigue_score, 0) / activities.length
+  // Last 7 days (Santiago timezone)
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
+  const sevenDaysAgo = (() => {
+    const d = new Date(todayStr + 'T12:00:00')
+    d.setDate(d.getDate() - 7)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const last7 = activities.filter(a => a.date >= sevenDaysAgo && a.date <= todayStr)
+  const km7d = last7.reduce((s, a) => s + a.distance_km, 0)
+  const hours7d = last7.reduce((s, a) => s + a.moving_time_min, 0) / 60
+  const elevation7d = last7.reduce((s, a) => s + a.elevation_m, 0)
+  const avgFatigue7d = last7.length > 0
+    ? last7.reduce((s, a) => s + a.fatigue_score, 0) / last7.length
     : 0
-
-  // This week
-  const today = new Date('2026-04-04T00:00:00')
-  const dayOfWeek = today.getDay()
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + diff)
-  const mondayStr = monday.toISOString().split('T')[0]
-  const thisWeekActivities = activities.filter((a) => a.date >= mondayStr)
-  const thisWeekKm = thisWeekActivities.reduce((s, a) => s + a.distance_km, 0)
-
-  const recent = activities.slice(0, 5)
+  const runActs7d = last7.filter(a => a.pace_min_km > 0)
+  const avgPace7d = runActs7d.length > 0
+    ? runActs7d.reduce((s, a) => s + a.pace_min_km, 0) / runActs7d.length
+    : 0
 
   return (
     <div className="min-h-screen">
@@ -50,14 +73,32 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* KPI Cards */}
+        {/* KPI Cards — últimos 7 días */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <MetricCard label="Total km" value={totalKm.toFixed(0)} unit="km" icon="🏃" delay={0} color="#8b5cf6" />
-          <MetricCard label="Esta semana" value={thisWeekKm.toFixed(1)} unit="km" icon="📅" delay={0.05} color="#06b6d4" />
-          <MetricCard label="Horas" value={totalHours.toFixed(1)} unit="h" icon="⏱" delay={0.1} color="#22c55e" />
-          <MetricCard label="Desnivel" value={Math.round(totalElevation / 1000).toString()} unit="km↑" icon="⛰" delay={0.15} color="#f59e0b" />
-          <MetricCard label="Calorías" value={(totalCalories / 1000).toFixed(1)} unit="kcal" icon="🔥" delay={0.2} color="#f97316" />
-          <MetricCard label="Fatiga avg" value={Math.round(avgFatigue).toString()} icon="💪" delay={0.25} color="#ec4899" />
+          <MetricCard
+            label="Km" value={km7d.toFixed(1)} unit="km" icon="🏃" delay={0} color="#8b5cf6"
+            trendLabel={`${last7.length} actividad${last7.length !== 1 ? 'es' : ''} · 7 días`}
+          />
+          <MetricCard
+            label="Horas" value={hours7d.toFixed(1)} unit="h" icon="⏱" delay={0.05} color="#22c55e"
+            trendLabel="tiempo en movimiento"
+          />
+          <MetricCard
+            label="Ritmo avg" value={avgPace7d > 0 ? formatPace(avgPace7d) : '—'} icon="⚡" delay={0.1} color="#06b6d4"
+            trendLabel="min/km · carrera"
+          />
+          <MetricCard
+            label="Desnivel" value={Math.round(elevation7d).toString()} unit="m↑" icon="⛰" delay={0.15} color="#f59e0b"
+            trendLabel="elevación acumulada"
+          />
+          <MetricCard
+            label="Fatiga avg" value={Math.round(avgFatigue7d).toString()} unit="/ 100" icon="💪" delay={0.2} color="#ec4899"
+            trendLabel="0 reposo · 100 agotado"
+          />
+          <MetricCard
+            label="Actividades" value={last7.length.toString()} icon="📅" delay={0.25} color="#f97316"
+            trendLabel="últimos 7 días"
+          />
         </div>
 
         {/* Today recommendation */}
@@ -70,47 +111,29 @@ export default async function DashboardPage() {
             <WeeklyChart data={weeklyStats} />
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
-            <h2 className="text-sm font-semibold text-white mb-4">ACWR — Riesgo de lesión</h2>
-            <ACWRGauge result={acwr} />
+          <div className="space-y-4">
+            {/* Recovery clock */}
+            {activities.length > 0 && (() => {
+              const last = [...activities].sort((a, b) => b.date.localeCompare(a.date))[0]
+              return (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                  <h2 className="text-sm font-semibold text-white mb-4">⏱ Recuperación</h2>
+                  <RecoveryClock lastActivity={last} acwrLevel={acwr.level} />
+                </div>
+              )
+            })()}
+
+            {/* ACWR gauge */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+              <h2 className="text-sm font-semibold text-white mb-4">ACWR — Riesgo de lesión</h2>
+              <ACWRGauge result={acwr} />
+            </div>
           </div>
         </div>
 
-        {/* Fatigue chart + recent activities */}
-        <DashboardClient activities={activities} />
-
-        {/* Recent activities list */}
+        {/* Period-filtered activities + fatigue chart */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Últimas actividades</h2>
-            <a href="/activities" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
-              Ver todas →
-            </a>
-          </div>
-          <div className="space-y-3">
-            {recent.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-lg shrink-0">
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{activity.name}</p>
-                  <p className="text-xs text-gray-500">{formatDate(activity.date)}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-mono text-white">{formatDistance(activity.distance_km)}</p>
-                  <p className="text-xs text-gray-400">{formatPace(activity.pace_min_km)}</p>
-                </div>
-                <div className="hidden sm:block text-right shrink-0">
-                  <p className="text-sm text-gray-300">{formatTime(activity.moving_time_min)}</p>
-                  <p className="text-xs text-gray-500">Fatiga: {activity.fatigue_score}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <DashboardPeriodView activities={activities} trainingPlans={trainingPlans} />
         </div>
       </main>
     </div>

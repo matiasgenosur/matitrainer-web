@@ -3,6 +3,12 @@ export interface Activity {
   name: string
   type: string
   date: string
+  started_at?: string   // ISO timestamp hora local (e.g. "2026-04-03T08:30:00")
+  ended_at?: string     // ISO timestamp hora local (started_at + elapsed_time)
+  start_lat?: number
+  start_lng?: number
+  city?: string
+  country?: string
   distance_km: number
   moving_time_min: number
   elevation_m: number

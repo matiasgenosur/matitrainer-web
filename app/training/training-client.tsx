@@ -3,291 +3,357 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Activity } from '@/lib/types'
-import { getActivityIcon, formatDistance, formatPace, formatDate } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { getActivityIcon, formatDistance, formatPace, formatTime } from '@/lib/utils'
+
+interface TrainingPlan {
+  date: string
+  planned_activity: string
+  distance_km?: number
+  session_type?: string
+  notes?: string
+}
 
 interface TrainingClientProps {
   activities: Activity[]
+  trainingPlans: TrainingPlan[]
 }
 
-// Build April 2026 calendar
-const YEAR = 2026
-const MONTH = 3 // April (0-indexed)
-
-// Planned sessions for April 2026
-const plannedSessions: Record<string, { type: string; desc: string; target: string }> = {
-  '2026-04-05': { type: 'Run', desc: 'Run Fácil Z1-Z2', target: '8-10 km @ 6:30-7:00' },
-  '2026-04-07': { type: 'Run', desc: 'Tempo Run', target: '12-14 km @ Z3-Z4' },
-  '2026-04-08': { type: 'Hike', desc: 'Hike Recuperación', target: '8-10 km' },
-  '2026-04-10': { type: 'Run', desc: 'Long Run', target: '18-20 km @ Z2-Z3' },
-  '2026-04-12': { type: 'Run', desc: 'Intervalos', target: '6x1km @ Z5' },
-  '2026-04-14': { type: 'Run', desc: 'Run Progresivo', target: '14 km progresivo' },
-  '2026-04-16': { type: 'Hike', desc: 'Hike Activo', target: '10 km' },
-  '2026-04-17': { type: 'Run', desc: 'Long Run Final', target: '22-24 km @ Z2' },
-  '2026-04-19': { type: 'Rest', desc: 'Descanso', target: 'Recuperación total' },
-  '2026-04-21': { type: 'Run', desc: 'Run Suave', target: '10 km @ Z1-Z2' },
-  '2026-04-24': { type: 'Run', desc: 'Race Prep', target: '14 km @ ritmo carrera' },
-  '2026-04-26': { type: 'Run', desc: 'Taper Run', target: '8 km fácil' },
-  '2026-04-28': { type: 'Rest', desc: 'Descanso Pre-Carrera', target: 'Descanso + prep' },
+function todaySantiago(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
 }
 
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate()
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + n)
+  return d.toISOString().split('T')[0]
 }
 
-function getFirstDayOfMonth(year: number, month: number) {
-  const day = new Date(year, month, 1).getDay()
-  return day === 0 ? 6 : day - 1 // Monday first
+function getWeekStart(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return d.toISOString().split('T')[0]
 }
 
-const typeColors: Record<string, string> = {
-  Run: '#8b5cf6',
-  Hike: '#22c55e',
-  Soccer: '#3b82f6',
-  Rest: '#374151',
+function formatDayFull(dateStr: string, todayStr: string): { label: string; sub: string } {
+  const diff = Math.round(
+    (new Date(dateStr + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / 86400000
+  )
+  const d = new Date(dateStr + 'T12:00:00')
+  const weekday = d.toLocaleDateString('es-CL', { weekday: 'long' })
+  const dateLabel = d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })
+
+  if (diff === 0) return { label: 'Hoy', sub: dateLabel }
+  if (diff === -1) return { label: 'Ayer', sub: dateLabel }
+  if (diff === 1) return { label: 'Mañana', sub: dateLabel }
+  return { label: weekday.charAt(0).toUpperCase() + weekday.slice(1), sub: dateLabel }
 }
 
-const WEEK_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+const SESSION_COLORS: Record<string, string> = {
+  'Recuperación': '#22c55e',
+  'Fácil': '#3b82f6',
+  'Medio': '#8b5cf6',
+  'Largo': '#f59e0b',
+  'Largo+': '#f97316',
+  'Trail': '#10b981',
+  'Descanso': '#6b7280',
+  'Intervalos': '#ec4899',
+}
 
-export default function TrainingClient({ activities }: TrainingClientProps) {
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+export default function TrainingClient({ activities, trainingPlans }: TrainingClientProps) {
+  const today = todaySantiago()
+  const [weeksAhead, setWeeksAhead] = useState(4)
 
-  const activityByDate = new Map<string, Activity[]>()
-  activities.forEach((a) => {
-    if (!activityByDate.has(a.date)) activityByDate.set(a.date, [])
-    activityByDate.get(a.date)!.push(a)
+  // Index activities and plans by date
+  const actByDate = new Map<string, Activity[]>()
+  activities.forEach(a => {
+    if (!actByDate.has(a.date)) actByDate.set(a.date, [])
+    actByDate.get(a.date)!.push(a)
   })
 
-  const daysInMonth = getDaysInMonth(YEAR, MONTH)
-  const firstDay = getFirstDayOfMonth(YEAR, MONTH)
-  const today = 4 // April 4
+  const planByDate = new Map<string, TrainingPlan>()
+  trainingPlans.forEach(p => planByDate.set(p.date, p))
 
-  // Calculate adherence
-  const completedPlanned = Object.keys(plannedSessions).filter((dateStr) => {
-    const dayNum = parseInt(dateStr.split('-')[2])
-    return dayNum <= today && activityByDate.has(dateStr)
-  })
-  const totalPlanned = Object.keys(plannedSessions).filter((dateStr) => {
-    const dayNum = parseInt(dateStr.split('-')[2])
-    return dayNum <= today
-  })
-  const adherence = totalPlanned.length > 0
-    ? Math.round((completedPlanned.length / totalPlanned.length) * 100)
-    : 100
+  // Build weeks: from current week to weeksAhead weeks ahead
+  const startDate = getWeekStart(today)
+  const endDate = addDays(startDate, weeksAhead * 7 - 1)
 
-  // Upcoming sessions
-  const upcoming = Object.entries(plannedSessions)
-    .filter(([date]) => {
-      const dayNum = parseInt(date.split('-')[2])
-      return dayNum > today
-    })
-    .slice(0, 5)
+  // Group days by week
+  const weeks: { weekStart: string; days: string[] }[] = []
+  let cur = startDate
+  while (cur <= endDate) {
+    const weekStart = cur
+    const days: string[] = []
+    for (let i = 0; i < 7; i++) days.push(addDays(cur, i))
+    weeks.push({ weekStart, days })
+    cur = addDays(cur, 7)
+  }
 
-  const selectedDateStr = selectedDay
-    ? `${YEAR}-04-${selectedDay.toString().padStart(2, '0')}`
-    : null
-  const selectedActivities = selectedDateStr ? activityByDate.get(selectedDateStr) || [] : []
-  const selectedPlan = selectedDateStr ? plannedSessions[selectedDateStr] : null
+  // Stats
+  const planDates = trainingPlans.map(p => p.date)
+  const completedCount = planDates.filter(d => d <= today && actByDate.has(d)).length
+  const pendingCount = planDates.filter(d => d > today).length
+  const adherence = planDates.filter(d => d <= today).length > 0
+    ? Math.round(completedCount / planDates.filter(d => d <= today).length * 100)
+    : 0
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Calendar */}
-      <div className="lg:col-span-2 space-y-4">
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold text-violet-400">{adherence}%</p>
-            <p className="text-xs text-gray-400 mt-1">Adherencia al plan</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{completedPlanned.length}</p>
-            <p className="text-xs text-gray-400 mt-1">Sesiones completadas</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold text-cyan-400">{Object.keys(plannedSessions).length - completedPlanned.length}</p>
-            <p className="text-xs text-gray-400 mt-1">Sesiones pendientes</p>
-          </div>
-        </div>
 
-        {/* Legend */}
-        <div className="flex gap-4 text-xs text-gray-400">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-violet-500/30 border border-violet-500/50 inline-block" />Planificado</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-violet-500 inline-block" />Completado</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white/10 inline-block" />Descanso</span>
-        </div>
+      {/* Main: week list */}
+      <div className="lg:col-span-2 space-y-6">
+        {weeks.map(({ weekStart, days }) => {
+          const weekLabel = new Date(weekStart + 'T12:00:00').toLocaleDateString('es-CL', {
+            day: 'numeric', month: 'long'
+          })
+          const hasContent = days.some(d => actByDate.has(d) || planByDate.has(d))
 
-        {/* Calendar grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm"
-        >
-          <h2 className="text-sm font-semibold text-white mb-4">Abril 2026</h2>
+          return (
+            <motion.div
+              key={weekStart}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm"
+            >
+              {/* Week header */}
+              <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Semana del {weekLabel}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {days.filter(d => actByDate.has(d)).length} completadas ·{' '}
+                  {days.filter(d => planByDate.has(d) && d > today).length} planificadas
+                </p>
+              </div>
 
-          {/* Week day headers */}
-          <div className="grid grid-cols-7 mb-2">
-            {WEEK_DAYS.map((d) => (
-              <div key={d} className="text-center text-xs text-gray-500 py-1">{d}</div>
-            ))}
-          </div>
+              {/* Days */}
+              <div className="divide-y divide-white/5">
+                {days.map(dateStr => {
+                  const acts = actByDate.get(dateStr) || []
+                  const plan = planByDate.get(dateStr)
+                  const isFuture = dateStr > today
+                  const isToday = dateStr === today
+                  const isPast = dateStr < today
+                  const { label, sub } = formatDayFull(dateStr, today)
+                  const isEmpty = acts.length === 0 && !plan
 
-          {/* Days grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells for first week */}
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} />
-            ))}
-
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1
-              const dateStr = `${YEAR}-04-${day.toString().padStart(2, '0')}`
-              const completed = activityByDate.get(dateStr) || []
-              const planned = plannedSessions[dateStr]
-              const isPast = day <= today
-              const isToday = day === today
-              const isSelected = day === selectedDay
-
-              const hasActivity = completed.length > 0
-              const actType = hasActivity ? completed[0].type : planned?.type
-
-              return (
-                <motion.button
-                  key={day}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedDay(day === selectedDay ? null : day)}
-                  className={cn(
-                    'aspect-square rounded-xl flex flex-col items-center justify-center text-xs transition-all relative',
-                    isSelected ? 'ring-2 ring-violet-400' : '',
-                    isToday ? 'ring-2 ring-cyan-400' : '',
-                    hasActivity
-                      ? 'text-white'
-                      : planned
-                      ? 'border border-white/20 text-gray-400 hover:border-violet-500/40'
-                      : isPast
-                      ? 'text-gray-600'
-                      : 'text-gray-500'
-                  )}
-                  style={
-                    hasActivity
-                      ? {
-                          background: `${typeColors[actType || 'Run']}30`,
-                          borderColor: `${typeColors[actType || 'Run']}50`,
-                          border: `1px solid ${typeColors[actType || 'Run']}50`,
-                        }
-                      : planned && !isPast
-                      ? { background: 'rgba(139,92,246,0.05)' }
-                      : {}
+                  if (isPast && isEmpty) {
+                    // Collapse empty past days
+                    return (
+                      <div key={dateStr} className="flex items-center gap-4 px-5 py-2 opacity-30">
+                        <div className="w-20 shrink-0">
+                          <p className="text-xs font-medium text-gray-500">{label}</p>
+                          <p className="text-xs text-gray-600">{sub}</p>
+                        </div>
+                        <p className="text-xs text-gray-700">—</p>
+                      </div>
+                    )
                   }
-                >
-                  <span className={cn('font-medium', isToday && 'text-cyan-400')}>{day}</span>
-                  {(hasActivity || planned) && (
-                    <span className="text-[10px] mt-0.5 opacity-70">
-                      {hasActivity
-                        ? getActivityIcon(actType || 'Run')
-                        : planned?.type === 'Rest'
-                        ? '😴'
-                        : '📋'}
-                    </span>
-                  )}
-                </motion.button>
-              )
-            })}
-          </div>
-        </motion.div>
 
-        {/* Selected day detail */}
-        {selectedDay && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm"
-          >
-            <h3 className="text-sm font-semibold text-white mb-3">
-              {selectedDay} de Abril 2026
-            </h3>
-            {selectedActivities.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs text-emerald-400 font-medium mb-2">✅ Actividad completada</p>
-                {selectedActivities.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
-                    <span className="text-xl">{getActivityIcon(a.type)}</span>
-                    <div className="flex-1">
-                      <p className="text-sm text-white font-medium">{a.name}</p>
-                      <p className="text-xs text-gray-400">{formatDistance(a.distance_km)} · {formatPace(a.pace_min_km)}</p>
+                  return (
+                    <div
+                      key={dateStr}
+                      className={`px-5 py-4 transition-colors ${isToday ? 'bg-violet-500/5' : ''}`}
+                    >
+                      <div className="flex gap-4">
+                        {/* Date column */}
+                        <div className="w-20 shrink-0 pt-0.5">
+                          <p className={`text-sm font-semibold ${isToday ? 'text-violet-400' : isFuture ? 'text-gray-300' : 'text-gray-400'}`}>
+                            {label}
+                            {isToday && <span className="ml-1 text-xs">●</span>}
+                          </p>
+                          <p className="text-xs text-gray-600">{sub}</p>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 space-y-2">
+                          {/* Completed activities */}
+                          {acts.map(a => (
+                            <div key={a.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                              <div className="w-9 h-9 rounded-lg bg-violet-500/15 flex items-center justify-center text-lg shrink-0">
+                                {getActivityIcon(a.type)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-white truncate">{a.name}</p>
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20 shrink-0">
+                                    ✓ completado
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {formatDistance(a.distance_km)}
+                                  {a.pace_min_km > 0 && ` · ${formatPace(a.pace_min_km)}`}
+                                  {a.moving_time_min > 0 && ` · ${formatTime(a.moving_time_min)}`}
+                                  {a.avg_hr && ` · FC ${a.avg_hr}bpm`}
+                                </p>
+                                {a.trainer_notes && (
+                                  <p className="text-xs text-violet-300 mt-1 italic">"{a.trainer_notes}"</p>
+                                )}
+                              </div>
+                              {a.fatigue_score > 0 && (
+                                <div className="text-right shrink-0">
+                                  <p className="text-xs text-gray-500">Fatiga</p>
+                                  <p className="text-sm font-mono text-gray-300">{a.fatigue_score}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Planned activity */}
+                          {plan && (
+                            <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                              isFuture
+                                ? 'bg-cyan-500/5 border-cyan-500/20'
+                                : acts.length === 0
+                                ? 'bg-red-500/5 border-red-500/20 opacity-60'
+                                : 'bg-white/3 border-white/5 opacity-50'
+                            }`}>
+                              <div
+                                className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0"
+                                style={{ background: `${SESSION_COLORS[plan.session_type || ''] || '#8b5cf6'}15` }}
+                              >
+                                {plan.session_type === 'Descanso' ? '😴' : '📋'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className={`text-sm font-medium ${isFuture ? 'text-cyan-200' : 'text-gray-400'}`}>
+                                    {plan.planned_activity}
+                                  </p>
+                                  {plan.session_type && (
+                                    <span
+                                      className="text-xs px-1.5 py-0.5 rounded-full shrink-0"
+                                      style={{
+                                        background: `${SESSION_COLORS[plan.session_type] || '#8b5cf6'}20`,
+                                        color: SESSION_COLORS[plan.session_type] || '#8b5cf6',
+                                      }}
+                                    >
+                                      {plan.session_type}
+                                    </span>
+                                  )}
+                                  {!isFuture && acts.length === 0 && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 shrink-0">
+                                      no completado
+                                    </span>
+                                  )}
+                                </div>
+                                {(plan.distance_km || plan.notes) && (
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {plan.distance_km && `${plan.distance_km}km`}
+                                    {plan.distance_km && plan.notes && ' · '}
+                                    {plan.notes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Future with no plan */}
+                          {!isToday && isFuture && !plan && (
+                            <p className="text-xs text-gray-700 italic py-1">Sin actividad planificada</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500">Fatiga: {a.fatigue_score}</span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
-            ) : selectedPlan ? (
-              <div>
-                <p className="text-xs text-amber-400 font-medium mb-2">📋 Sesión planificada</p>
-                <div className="p-3 bg-white/5 rounded-xl">
-                  <p className="text-sm text-white font-medium">{selectedPlan.desc}</p>
-                  <p className="text-xs text-gray-400 mt-1">{selectedPlan.target}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">Sin actividad planificada este día.</p>
-            )}
-          </motion.div>
-        )}
+            </motion.div>
+          )
+        })}
+
+        {/* Load more */}
+        <button
+          onClick={() => setWeeksAhead(w => w + 2)}
+          className="w-full py-3 text-sm text-gray-500 hover:text-gray-300 border border-white/5 hover:border-white/10 rounded-2xl transition-colors"
+        >
+          Ver 2 semanas más →
+        </button>
       </div>
 
-      {/* Sidebar: Upcoming sessions */}
+      {/* Sidebar */}
       <div className="space-y-4">
+        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm"
+        >
+          <h2 className="text-sm font-semibold text-white mb-4">Resumen del plan</h2>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-400">Adherencia</p>
+              <p className="text-sm font-bold text-violet-400">{adherence}%</p>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-1.5">
+              <div className="bg-violet-500 h-1.5 rounded-full" style={{ width: `${adherence}%` }} />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-gray-500">Completadas</p>
+              <p className="text-sm font-mono text-green-400">{completedCount}</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">Pendientes</p>
+              <p className="text-sm font-mono text-cyan-400">{pendingCount}</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">Total planificadas</p>
+              <p className="text-sm font-mono text-gray-300">{trainingPlans.length}</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Próximas sesiones */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
           className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm"
         >
           <h2 className="text-sm font-semibold text-white mb-4">Próximas sesiones</h2>
-          <div className="space-y-3">
-            {upcoming.map(([date, session]) => {
-              const d = new Date(date + 'T00:00:00')
-              const label = d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })
-              return (
-                <div key={date} className="flex items-start gap-3">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 mt-0.5"
-                    style={{ background: `${typeColors[session.type] || '#8b5cf6'}20` }}
-                  >
-                    {session.type === 'Rest' ? '😴' : getActivityIcon(session.type)}
+          {trainingPlans.filter(p => p.date >= today).length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">
+              Sin plan aún.<br />
+              <span className="text-xs text-gray-600">Pídele a Claude que cree uno.</span>
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {trainingPlans.filter(p => p.date >= today).slice(0, 7).map(p => {
+                const d = new Date(p.date + 'T12:00:00')
+                const label = d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })
+                const color = SESSION_COLORS[p.session_type || ''] || '#8b5cf6'
+                return (
+                  <div key={p.date} className="flex items-start gap-3">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 mt-0.5"
+                      style={{ background: `${color}20` }}
+                    >
+                      {p.session_type === 'Descanso' ? '😴' : '🏃'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500 capitalize">{label}</p>
+                      <p className="text-sm text-white font-medium leading-tight">{p.planned_activity}</p>
+                      {(p.distance_km || p.notes) && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {p.distance_km && `${p.distance_km}km`}
+                          {p.distance_km && p.notes && ' · '}
+                          {p.notes}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 capitalize">{label}</p>
-                    <p className="text-sm text-white font-medium">{session.desc}</p>
-                    <p className="text-xs text-gray-400">{session.target}</p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </motion.div>
 
-        {/* Recent completed */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm"
-        >
-          <h2 className="text-sm font-semibold text-white mb-4">Recientes completadas</h2>
-          <div className="space-y-3">
-            {activities.slice(0, 5).map((a) => (
-              <div key={a.id} className="flex items-center gap-3">
-                <span className="text-lg">{getActivityIcon(a.type)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white truncate">{a.name}</p>
-                  <p className="text-xs text-gray-500">{formatDate(a.date)}</p>
-                </div>
-                <span className="text-xs text-gray-400 font-mono shrink-0">{formatDistance(a.distance_km)}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        {/* Tip */}
+        <div className="bg-violet-500/5 border border-violet-500/20 rounded-2xl p-4">
+          <p className="text-xs text-violet-300 leading-relaxed">
+            💡 Usa el chat <strong>🤖</strong> para pedirle a Claude que cree o modifique tu plan de entrenamiento.
+          </p>
+        </div>
       </div>
     </div>
   )
