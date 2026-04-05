@@ -67,6 +67,7 @@ function mapActivity(a: any) {
     calories: a.kilojoules && a.kilojoules >= 50
       ? Math.round(a.kilojoules * 0.239)
       : Math.round(movingTimeMin * 9),
+    fatigue_score: Math.round(Math.min(100, movingTimeMin * 0.5 + distanceKm * 2 + (a.total_elevation_gain || 0) * 0.05)),
     avg_hr: avgHr,
     max_hr: a.max_heartrate || null,
     pace_min_km: paceMinKm,
