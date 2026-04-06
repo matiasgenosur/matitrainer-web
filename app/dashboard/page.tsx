@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getActivities, getWeeklyStats, calculateACWR, getTodayRecommendation } from '@/lib/data'
 import { formatPace } from '@/lib/utils'
 import { createClient } from '@supabase/supabase-js'

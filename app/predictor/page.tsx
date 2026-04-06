@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getActivities, predictRaces, calculateVO2Max } from '@/lib/data'
 import Nav from '@/components/nav'
 import PredictorClient from './predictor-client'

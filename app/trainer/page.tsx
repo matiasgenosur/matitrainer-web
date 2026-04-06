@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { Suspense } from 'react'
 import { getActivities, getWeeklyStats, calculateACWR } from '@/lib/data'
 import Nav from '@/components/nav'

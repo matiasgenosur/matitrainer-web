@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getActivities, getWeeklyStats } from '@/lib/data'
 import Nav from '@/components/nav'
 import AnalyticsClient from './analytics-client'

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getActivities } from '@/lib/data'
 import Nav from '@/components/nav'
 import ActivitiesClient from './activities-client'

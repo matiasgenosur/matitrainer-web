@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getActivities } from '@/lib/data'
 import { createClient } from '@supabase/supabase-js'
 import Nav from '@/components/nav'
