@@ -1,10 +1,22 @@
+export interface Split {
+  km: number
+  time_s: number
+  pace_s_km: number | null
+  gap_s_km: number | null
+  hr: number | null
+  elev_m: number
+  pace_zone: number | null
+}
+
 export interface Activity {
   id: number
   name: string
   type: string
+  sport_type?: string
+  workout_type?: number
   date: string
-  started_at?: string   // ISO timestamp hora local (e.g. "2026-04-03T08:30:00")
-  ended_at?: string     // ISO timestamp hora local (started_at + elapsed_time)
+  started_at?: string
+  ended_at?: string
   start_lat?: number
   start_lng?: number
   city?: string
@@ -12,19 +24,34 @@ export interface Activity {
   distance_km: number
   moving_time_min: number
   elevation_m: number
+  elev_high?: number
+  elev_low?: number
   calories: number
   avg_hr?: number
+  max_hr?: number
   pace_min_km: number
+  avg_cadence?: number
+  max_speed_ms?: number
   z1_min: number
   z2_min: number
   z3_min: number
   z4_min: number
   z5_min: number
   fatigue_score: number
+  suffer_score?: number
+  perceived_exertion?: number
   strava_link: string
   session_type: string
   fc_pct: number
   weekly_km: number
+  achievement_count?: number
+  pr_count?: number
+  gear_name?: string
+  gear_distance_km?: number
+  device_name?: string
+  description?: string
+  splits_metric?: Split[]
+  best_efforts?: Record<string, number>
   rpe?: number
   trainer_notes?: string
   planned_activity?: string

@@ -9,7 +9,7 @@ interface ActivitiesClientProps {
   activities: Activity[]
 }
 
-const ACTIVITY_TYPES = ['Todos', 'Run', 'Hike', 'Soccer', 'Walk', 'Workout']
+const ACTIVITY_TYPES = ['Todos', 'Run', 'Trail', 'Hike', 'Soccer', 'Walk', 'Workout']
 
 export default function ActivitiesClient({ activities }: ActivitiesClientProps) {
   const [typeFilter, setTypeFilter] = useState('Todos')
@@ -20,7 +20,9 @@ export default function ActivitiesClient({ activities }: ActivitiesClientProps) 
   const filtered = useMemo(() => {
     let result = [...activities]
 
-    if (typeFilter !== 'Todos') {
+    if (typeFilter === 'Trail') {
+      result = result.filter((a) => a.sport_type === 'TrailRun')
+    } else if (typeFilter !== 'Todos') {
       result = result.filter((a) => a.type === typeFilter)
     }
 
