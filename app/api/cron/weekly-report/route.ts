@@ -11,12 +11,16 @@ function getGmailClient() {
   return google.gmail({ version: 'v1', auth })
 }
 
+function encodeSubject(subject: string): string {
+  return `=?utf-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
+}
+
 function buildRawEmail(to: string[], subject: string, html: string, from: string): string {
   const boundary = 'matitrainer_boundary'
   const message = [
     `From: MatiTrainer <${from}>`,
     `To: ${to.join(', ')}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
