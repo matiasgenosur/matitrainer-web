@@ -10,10 +10,13 @@ export default async function PredictorPage() {
   const vo2max = calculateVO2Max(activities)
 
   const runs = activities
-    .filter((a) => a.type === 'Run' && a.distance_km >= 15)
+    .filter((a) => a.type === 'Run' && a.distance_km >= 10 && a.pace_min_km > 0 && a.pace_min_km < 15)
     .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 20)
 
-  const refRun = runs[0] || null
+  const refRun = runs.length > 0
+    ? runs.reduce((best, r) => r.pace_min_km < best.pace_min_km ? r : best, runs[0])
+    : null
 
   return (
     <div className="min-h-screen">

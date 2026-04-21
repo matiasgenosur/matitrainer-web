@@ -150,9 +150,9 @@ export function predictRaces(activities: Activity[]): RacePrediction[] {
     return defaultPredictions()
   }
 
-  // Use best recent pace from runs >= 15km
-  const longRuns = runs.filter((a) => a.distance_km >= 15)
-  const refRun = longRuns.length > 0 ? longRuns[0] : runs[0]
+  // Use the run with the best (lowest) pace as reference — most likely a race effort
+  const recent = runs.slice(0, 20)
+  const refRun = recent.reduce((best, r) => r.pace_min_km < best.pace_min_km ? r : best, recent[0])
 
   const refTimeMins = refRun.moving_time_min
   const refDistKm = refRun.distance_km
