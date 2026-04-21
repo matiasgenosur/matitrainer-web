@@ -209,8 +209,9 @@ export default function PredictorClient({
                   />
                   <Tooltip
                     contentStyle={CHART_TOOLTIP_STYLE}
-                    formatter={(v: number, name: string) => {
-                      const m = Math.floor(v); const s = Math.round((v - m) * 60)
+                    formatter={(v, name) => {
+                      const n = Number(v) || 0
+                      const m = Math.floor(n); const s = Math.round((n - m) * 60)
                       return [`${m}:${s.toString().padStart(2, '0')}`, name]
                     }}
                     labelStyle={{ color: '#9ca3af' }}

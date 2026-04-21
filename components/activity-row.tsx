@@ -90,9 +90,10 @@ function SplitsChart({ splits }: { splits: Split[] }) {
           <Tooltip
             contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }}
             labelFormatter={(v) => `Km ${v}`}
-            formatter={(value: number, name: string) => {
-              if (name === 'pace' || name === 'gap') return [fmtSec(value) + ' /km', name === 'pace' ? 'Ritmo' : 'GAP']
-              if (name === 'hr') return [Math.round(value) + ' bpm', 'FC']
+            formatter={(value, name) => {
+              const v = Number(value) || 0
+              if (name === 'pace' || name === 'gap') return [fmtSec(v) + ' /km', name === 'pace' ? 'Ritmo' : 'GAP']
+              if (name === 'hr') return [Math.round(v) + ' bpm', 'FC']
               return [value, name]
             }}
           />
