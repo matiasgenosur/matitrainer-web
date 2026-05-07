@@ -99,21 +99,32 @@ export interface Recommendation {
   suggestedActivity?: string
 }
 
-export interface Team {
+export interface MatitrainerUser {
   id: string
-  trainer_name: string
-  trainee_name: string
-  trainee_strava_athlete_id: number | null
-  whatsapp_group_id: string
-  trainer_phone: string | null
-  trainee_phone: string | null
-  active: boolean
+  role: 'trainer' | 'trainee'
+  display_name: string
+  whatsapp_number: string | null
+  strava_athlete_id: number | null
   created_at: string
+}
+
+export interface MatitrainerSession {
+  id: string
+  trainer_id: string
+  trainee_id: string
+  whatsapp_group_id: string | null
+  status: 'pending' | 'active' | 'revoked'
+  created_at: string
+  activated_at: string | null
+  revoked_at: string | null
+  // Joined fields
+  trainer?: MatitrainerUser
+  trainee?: MatitrainerUser
 }
 
 export interface ReadinessSurvey {
   id: string
-  team_id: string
+  session_id: string
   activity_id: number | null
   survey_date: string
   sleep_quality: number | null

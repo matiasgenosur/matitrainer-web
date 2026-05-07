@@ -138,18 +138,20 @@ export async function POST(request: Request) {
         )
         await supabase.from('activities').upsert([record], { onConflict: 'id' })
 
-        // Send WhatsApp notification to the team group
+        // Send WhatsApp notification to the session group
         if (body.aspect_type === 'create') {
-          const { data: team } = await supabase
-            .from('teams')
-            .select('whatsapp_group_id')
-            .eq('trainee_strava_athlete_id', body.owner_id)
-            .eq('active', true)
-            .single()
+          const { data: session } = await supabase
+            .from('matitrainer_sessions')
+            .select('whatsapp_group_id, trainee:matitrainer_users!trainee_id(strava_athlete_id)')
+            .eq('status', 'active')
+            .not('whatsapp_group_id', 'is', null)
 
-          if (team) {
+          // Find session whose trainee has this Strava athlete ID
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const match = session?.find((s: any) => s.trainee?.strava_athlete_id === body.owner_id)
+          if (match) {
             const msg = formatActivityMessage(record)
-            sendText(team.whatsapp_group_id, msg).catch(e =>
+            sendText(match.whatsapp_group_id, msg).catch(e =>
               console.error('WA notification error:', e)
             )
           }

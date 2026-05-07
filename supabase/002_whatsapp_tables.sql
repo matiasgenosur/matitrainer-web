@@ -1,23 +1,42 @@
--- Migration: WhatsApp bot tables
+-- Migration: WhatsApp bot tables with binding token system
 -- Run this in Supabase SQL Editor
 
--- Teams: maps trainer + trainee + WhatsApp group
-create table if not exists teams (
+-- Users (trainers and trainees)
+create table if not exists matitrainer_users (
   id uuid default gen_random_uuid() primary key,
-  trainer_name text not null,
-  trainee_name text not null,
-  trainee_strava_athlete_id bigint unique,
-  whatsapp_group_id text not null,
-  trainer_phone text,
-  trainee_phone text,
-  active boolean default true,
+  role text not null check (role in ('trainer', 'trainee')),
+  display_name text not null,
+  whatsapp_number text,  -- e.g. "569..."
+  strava_athlete_id bigint unique,
+  created_at timestamptz default now()
+);
+
+-- Sessions (trainer <-> trainee pair)
+create table if not exists matitrainer_sessions (
+  id uuid default gen_random_uuid() primary key,
+  trainer_id uuid not null references matitrainer_users(id),
+  trainee_id uuid not null references matitrainer_users(id),
+  whatsapp_group_id text,  -- set on binding, e.g. "120363...@g.us"
+  status text not null default 'pending' check (status in ('pending', 'active', 'revoked')),
+  created_at timestamptz default now(),
+  activated_at timestamptz,
+  revoked_at timestamptz
+);
+
+-- Bind tokens (one-time use to link WhatsApp group to session)
+create table if not exists matitrainer_bind_tokens (
+  id uuid default gen_random_uuid() primary key,
+  session_id uuid not null references matitrainer_sessions(id) on delete cascade,
+  token_hash text not null,  -- sha256 of the raw token
+  consumed boolean default false,
+  expires_at timestamptz not null,
   created_at timestamptz default now()
 );
 
 -- Readiness surveys (post-Crossfit)
 create table if not exists readiness_surveys (
   id uuid default gen_random_uuid() primary key,
-  team_id uuid references teams(id) on delete cascade,
+  session_id uuid references matitrainer_sessions(id) on delete cascade,
   activity_id bigint references activities(id),
   survey_date date not null,
   sleep_quality int check (sleep_quality between 1 and 5),
@@ -28,7 +47,7 @@ create table if not exists readiness_surveys (
   readiness_score decimal(3,2),
   completed boolean default false,
   created_at timestamptz default now(),
-  unique(team_id, survey_date)
+  unique(session_id, survey_date)
 );
 
 -- Idempotency for WhatsApp webhook
@@ -39,16 +58,20 @@ create table if not exists processed_messages (
 
 -- Extend chat_history for multi-tenant WhatsApp
 alter table chat_history add column if not exists channel text default 'web';
-alter table chat_history add column if not exists team_id uuid references teams(id);
+alter table chat_history add column if not exists session_id uuid references matitrainer_sessions(id);
 
--- Enable RLS but allow service role full access
-alter table teams enable row level security;
+-- Drop old teams table if it exists (superseded by sessions)
+drop table if exists teams cascade;
+
+-- Indexes
+create index if not exists idx_sessions_status on matitrainer_sessions(status);
+create index if not exists idx_sessions_group on matitrainer_sessions(whatsapp_group_id) where whatsapp_group_id is not null;
+create index if not exists idx_bind_tokens_hash on matitrainer_bind_tokens(token_hash) where not consumed;
+create index if not exists idx_users_whatsapp on matitrainer_users(whatsapp_number) where whatsapp_number is not null;
+
+-- RLS policies (service role bypasses RLS)
+alter table matitrainer_users enable row level security;
+alter table matitrainer_sessions enable row level security;
+alter table matitrainer_bind_tokens enable row level security;
 alter table readiness_surveys enable row level security;
 alter table processed_messages enable row level security;
-
-create policy "Service role full access on teams"
-  on teams for all using (true) with check (true);
-create policy "Service role full access on readiness_surveys"
-  on readiness_surveys for all using (true) with check (true);
-create policy "Service role full access on processed_messages"
-  on processed_messages for all using (true) with check (true);

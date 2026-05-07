@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'node:crypto'
 import { verifyHmac, sendText } from '@/lib/whatsapp-hub'
 import { processChat, ChatMessage } from '@/lib/chat-engine'
 
@@ -13,6 +14,114 @@ function getSupabase() {
   )
 }
 
+// ─── Binding flow ────────────────────────────────────────────────────────────
+
+const BIND_REGEX = /bind_token:\s*(\S+)/i
+
+async function handleBindingMessage(body: {
+  chat_id: string
+  from_number: string
+  text: string
+}) {
+  const match = body.text.match(BIND_REGEX)
+  if (!match) return false
+
+  const rawToken = match[1]
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+  const supabase = getSupabase()
+
+  // Find valid, unconsumed, non-expired token
+  const { data: tokenRow } = await supabase
+    .from('matitrainer_bind_tokens')
+    .select('id, session_id, consumed, expires_at')
+    .eq('token_hash', tokenHash)
+    .eq('consumed', false)
+    .single()
+
+  if (!tokenRow) {
+    await sendText(body.chat_id, '❌ Token inválido o ya consumido.')
+    return true
+  }
+
+  if (new Date(tokenRow.expires_at) < new Date()) {
+    await sendText(body.chat_id, '❌ Token expirado. Solicita uno nuevo.')
+    return true
+  }
+
+  // Verify the sender is the trainer of this session
+  const { data: session } = await supabase
+    .from('matitrainer_sessions')
+    .select(`
+      id, status,
+      trainer:matitrainer_users!trainer_id(display_name, whatsapp_number),
+      trainee:matitrainer_users!trainee_id(display_name)
+    `)
+    .eq('id', tokenRow.session_id)
+    .single()
+
+  if (!session) {
+    await sendText(body.chat_id, '❌ Sesión no encontrada.')
+    return true
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trainer = session.trainer as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trainee = session.trainee as any
+
+  // Verify sender is the trainer
+  if (trainer?.whatsapp_number && !body.from_number.includes(trainer.whatsapp_number.replace(/\D/g, ''))) {
+    await sendText(body.chat_id, '❌ Solo el entrenador registrado puede vincular este grupo.')
+    return true
+  }
+
+  if (session.status === 'revoked') {
+    await sendText(body.chat_id, '❌ Esta sesión fue revocada.')
+    return true
+  }
+
+  // Activate session: set chat_id and status
+  await supabase
+    .from('matitrainer_sessions')
+    .update({
+      whatsapp_group_id: body.chat_id,
+      status: 'active',
+      activated_at: new Date().toISOString(),
+    })
+    .eq('id', session.id)
+
+  // Consume token
+  await supabase
+    .from('matitrainer_bind_tokens')
+    .update({ consumed: true })
+    .eq('id', tokenRow.id)
+
+  await sendText(
+    body.chat_id,
+    `✅ *Grupo vinculado a MatiTrainer*\n🏋️ Entrenador: ${trainer?.display_name}\n🏃 Atleta: ${trainee?.display_name}\n\nYa pueden interactuar con el bot en este grupo.`
+  )
+
+  return true
+}
+
+// ─── Session lookup ──────────────────────────────────────────────────────────
+
+async function getActiveSession(chatId: string) {
+  const supabase = getSupabase()
+  const { data } = await supabase
+    .from('matitrainer_sessions')
+    .select(`
+      id, whatsapp_group_id,
+      trainer:matitrainer_users!trainer_id(id, display_name),
+      trainee:matitrainer_users!trainee_id(id, display_name, strava_athlete_id)
+    `)
+    .eq('whatsapp_group_id', chatId)
+    .eq('status', 'active')
+    .single()
+
+  return data
+}
+
 // ─── Poll vote handler ───────────────────────────────────────────────────────
 
 const READINESS_FIELDS = ['sleep_quality', 'energy_level', 'muscle_state', 'stress_level', 'mood'] as const
@@ -20,12 +129,10 @@ const READINESS_FIELDS = ['sleep_quality', 'energy_level', 'muscle_state', 'stre
 async function handlePollVote(body: {
   correlation_id?: string
   selected_options?: string[]
-  from?: string
 }) {
   const { correlation_id, selected_options } = body
   if (!correlation_id || !selected_options?.length) return
 
-  // Parse correlation_id: "readiness:{survey_id}:{field}"
   const parts = correlation_id.split(':')
   if (parts[0] !== 'readiness' || parts.length !== 3) return
 
@@ -38,7 +145,6 @@ async function handlePollVote(body: {
 
   const supabase = getSupabase()
 
-  // Update the specific field
   const { data: survey, error } = await supabase
     .from('readiness_surveys')
     .update({ [field]: value })
@@ -46,12 +152,8 @@ async function handlePollVote(body: {
     .select('*')
     .single()
 
-  if (error || !survey) {
-    console.error('Poll vote update error:', error?.message)
-    return
-  }
+  if (error || !survey) return
 
-  // Check if all fields are filled
   const allFilled = READINESS_FIELDS.every(f => survey[f] != null)
   if (allFilled) {
     const scores = READINESS_FIELDS.map(f => survey[f] as number)
@@ -62,20 +164,16 @@ async function handlePollVote(body: {
       .update({ readiness_score: readinessScore, completed: true })
       .eq('id', surveyId)
 
-    // Look up team to send summary
-    const { data: team } = await supabase
-      .from('teams')
-      .select('whatsapp_group_id, trainee_name')
-      .eq('id', survey.team_id)
-      .single()
-
-    if (team) {
+    const session = await getActiveSession(survey.session_id)
+    if (session) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const trainee = session.trainee as any
       const msg = [
-        `✅ *Encuesta de readiness completada* (${team.trainee_name})`,
+        `✅ *Encuesta de readiness completada* (${trainee?.display_name})`,
         `📊 Score: *${readinessScore.toFixed(1)}/5*`,
         `😴 Sueño: ${survey.sleep_quality} | ⚡ Energía: ${survey.energy_level} | 💪 Muscular: ${survey.muscle_state} | 🧠 Estrés: ${survey.stress_level} | 🔥 Ánimo: ${survey.mood}`,
       ].join('\n')
-      await sendText(team.whatsapp_group_id, msg)
+      await sendText(session.whatsapp_group_id, msg)
     }
   }
 }
@@ -87,28 +185,27 @@ async function handleTextMessage(body: {
   from_number: string
   from_name: string
   text: string
-  is_group: boolean
 }) {
-  const supabase = getSupabase()
+  // Check for binding message first
+  if (body.text.includes('bind_token:')) {
+    const handled = await handleBindingMessage(body)
+    if (handled) return
+  }
 
-  // Find team by group chat_id
-  const { data: team } = await supabase
-    .from('teams')
-    .select('id, whatsapp_group_id')
-    .eq('whatsapp_group_id', body.chat_id)
-    .eq('active', true)
-    .single()
-
-  if (!team) {
-    // Not a registered group, ignore
+  // Find active session for this group
+  const session = await getActiveSession(body.chat_id)
+  if (!session) {
+    await sendText(body.chat_id, '⚠️ Este grupo no está vinculado a MatiTrainer. Envía un bind_token para vincularlo.')
     return
   }
 
-  // Load recent chat history for this team (WhatsApp channel)
+  const supabase = getSupabase()
+
+  // Load recent chat history
   const { data: history } = await supabase
     .from('chat_history')
     .select('role, content')
-    .eq('team_id', team.id)
+    .eq('session_id', session.id)
     .eq('channel', 'whatsapp')
     .order('created_at', { ascending: false })
     .limit(20)
@@ -121,15 +218,14 @@ async function handleTextMessage(body: {
     { role: 'user' as const, content: `[${body.from_name}]: ${body.text}` },
   ]
 
-  // Save user message to history
+  // Save user message
   await supabase.from('chat_history').insert({
     role: 'user',
     content: `[${body.from_name}]: ${body.text}`,
     channel: 'whatsapp',
-    team_id: team.id,
+    session_id: session.id,
   })
 
-  // Process with chat engine
   const result = await processChat(messages)
 
   // Save assistant response
@@ -137,11 +233,10 @@ async function handleTextMessage(body: {
     role: 'assistant',
     content: result.reply,
     channel: 'whatsapp',
-    team_id: team.id,
+    session_id: session.id,
     actions: result.actionsExecuted.length > 0 ? result.actionsExecuted : null,
   })
 
-  // Send response back to WhatsApp group
   if (result.reply) {
     await sendText(body.chat_id, result.reply)
   }
@@ -150,7 +245,6 @@ async function handleTextMessage(body: {
 // ─── Webhook POST handler ────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  // Read raw body for HMAC verification
   const rawBody = await request.text()
 
   // Verify HMAC signature
@@ -183,13 +277,11 @@ export async function POST(request: Request) {
 
     try {
       await supabase.from('processed_messages').insert({ hub_message_id: messageId })
-    } catch { /* ignore duplicate insert */ }
+    } catch { /* ignore duplicate */ }
   }
 
-  // Log minimal info (no message content)
   console.log(`WA webhook: type=${body.type} from=${body.from_number || body.from} chat=${body.chat_id || '—'}`)
 
-  // Route by type — process async with after()
   const type = body.type || request.headers.get('x-hub-event')
 
   if (type === 'text' && body.text) {
@@ -210,6 +302,5 @@ export async function POST(request: Request) {
     })
   }
 
-  // Return 200 immediately
   return NextResponse.json({ ok: true })
 }
