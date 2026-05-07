@@ -167,16 +167,30 @@ async function handlePollVote(body: {
       .update({ readiness_score: readinessScore, completed: true })
       .eq('id', surveyId)
 
-    const session = await getActiveSession(survey.session_id)
-    if (session) {
+    // Look up session by whatsapp_group_id stored in survey's session
+    const { data: sessionData } = await supabase
+      .from('matitrainer_sessions')
+      .select(`
+        whatsapp_group_id,
+        trainer:matitrainer_users!trainer_id(display_name),
+        trainee:matitrainer_users!trainee_id(display_name)
+      `)
+      .eq('id', survey.session_id)
+      .single()
+
+    if (sessionData) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const trainee = session.trainee as any
+      const trainee = sessionData.trainee as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const trainer = sessionData.trainer as any
       const msg = [
         `✅ *Encuesta de readiness completada* (${trainee?.display_name})`,
         `📊 Score: *${readinessScore.toFixed(1)}/5*`,
         `😴 Sueño: ${survey.sleep_quality} | ⚡ Energía: ${survey.energy_level} | 💪 Muscular: ${survey.muscle_state} | 🧠 Estrés: ${survey.stress_level} | 🔥 Ánimo: ${survey.mood}`,
+        ``,
+        `💬 _${trainer?.display_name}: ¡Gracias por completar la encuesta! Voy a revisar tus respuestas para ajustar el próximo entrenamiento. 💪_`,
       ].join('\n')
-      await sendText(session.whatsapp_group_id, msg)
+      await sendText(sessionData.whatsapp_group_id!, msg)
     }
   }
 }
