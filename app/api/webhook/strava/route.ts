@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendText, formatActivityMessage } from '@/lib/whatsapp-hub'
 
 const VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || 'matitrainer_2026'
 const MAX_HR = 180
@@ -136,6 +137,23 @@ export async function POST(request: Request) {
           process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
         await supabase.from('activities').upsert([record], { onConflict: 'id' })
+
+        // Send WhatsApp notification to the team group
+        if (body.aspect_type === 'create') {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('whatsapp_group_id')
+            .eq('trainee_strava_athlete_id', body.owner_id)
+            .eq('active', true)
+            .single()
+
+          if (team) {
+            const msg = formatActivityMessage(record)
+            sendText(team.whatsapp_group_id, msg).catch(e =>
+              console.error('WA notification error:', e)
+            )
+          }
+        }
       }
     } catch (e) {
       console.error('Webhook detail sync error:', e)

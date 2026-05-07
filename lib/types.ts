@@ -98,3 +98,30 @@ export interface Recommendation {
   color: string
   suggestedActivity?: string
 }
+
+export interface Team {
+  id: string
+  trainer_name: string
+  trainee_name: string
+  trainee_strava_athlete_id: number | null
+  whatsapp_group_id: string
+  trainer_phone: string | null
+  trainee_phone: string | null
+  active: boolean
+  created_at: string
+}
+
+export interface ReadinessSurvey {
+  id: string
+  team_id: string
+  activity_id: number | null
+  survey_date: string
+  sleep_quality: number | null
+  energy_level: number | null
+  muscle_state: number | null
+  stress_level: number | null
+  mood: number | null
+  readiness_score: number | null
+  completed: boolean
+  created_at: string
+}
