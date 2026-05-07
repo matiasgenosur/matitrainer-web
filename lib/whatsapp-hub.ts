@@ -19,7 +19,7 @@ export async function sendText(to: string, text: string): Promise<string | null>
     const res = await fetch(`${HUB_URL()}/send`, {
       method: 'POST',
       headers: { 'x-api-key': HUB_API_KEY(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, text }),
+      body: JSON.stringify({ to, message: text }),
     })
     if (!res.ok) {
       console.error(`Hub sendText error: ${res.status}`)
