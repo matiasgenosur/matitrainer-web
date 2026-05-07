@@ -54,7 +54,7 @@ async function handleBindingMessage(body: {
     .select(`
       id, status,
       trainer:matitrainer_users!trainer_id(display_name, whatsapp_number),
-      trainee:matitrainer_users!trainee_id(display_name)
+      trainee:matitrainer_users!trainee_id(display_name, whatsapp_number)
     `)
     .eq('id', tokenRow.session_id)
     .single()
@@ -69,9 +69,12 @@ async function handleBindingMessage(body: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trainee = session.trainee as any
 
-  // Verify sender is the trainer
-  if (trainer?.whatsapp_number && !body.from_number.includes(trainer.whatsapp_number.replace(/\D/g, ''))) {
-    await sendText(body.chat_id, '❌ Solo el entrenador registrado puede vincular este grupo.')
+  // Verify sender is a member of this session (trainer or trainee)
+  const senderDigits = body.from_number.replace(/\D/g, '')
+  const trainerMatch = trainer?.whatsapp_number && senderDigits.includes(trainer.whatsapp_number.replace(/\D/g, ''))
+  const traineeMatch = trainee?.whatsapp_number && senderDigits.includes(trainee.whatsapp_number.replace(/\D/g, ''))
+  if (!trainerMatch && !traineeMatch) {
+    await sendText(body.chat_id, '❌ Solo un miembro registrado de la sesión puede vincular este grupo.')
     return true
   }
 
