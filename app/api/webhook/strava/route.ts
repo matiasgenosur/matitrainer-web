@@ -138,22 +138,32 @@ export async function POST(request: Request) {
         )
         await supabase.from('activities').upsert([record], { onConflict: 'id' })
 
-        // Send WhatsApp notification to the session group
+        // Send WhatsApp notification (deduplicate by activity ID)
         if (body.aspect_type === 'create') {
-          const { data: session } = await supabase
-            .from('matitrainer_sessions')
-            .select('whatsapp_group_id, trainee:matitrainer_users!trainee_id(strava_athlete_id)')
-            .eq('status', 'active')
-            .not('whatsapp_group_id', 'is', null)
+          const notifKey = `strava_notif_${actId}`
+          const { data: alreadySent } = await supabase
+            .from('processed_messages')
+            .select('hub_message_id')
+            .eq('hub_message_id', notifKey)
+            .single()
 
-          // Find session whose trainee has this Strava athlete ID
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const match = session?.find((s: any) => s.trainee?.strava_athlete_id === body.owner_id)
-          if (match) {
-            const msg = formatActivityMessage(record)
-            sendText(match.whatsapp_group_id, msg).catch(e =>
-              console.error('WA notification error:', e)
-            )
+          if (!alreadySent) {
+            await supabase.from('processed_messages').insert({ hub_message_id: notifKey }).then(() => {}, () => {})
+
+            const { data: sessions } = await supabase
+              .from('matitrainer_sessions')
+              .select('whatsapp_group_id, trainee:matitrainer_users!trainee_id(strava_athlete_id)')
+              .eq('status', 'active')
+              .not('whatsapp_group_id', 'is', null)
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const match = sessions?.find((s: any) => s.trainee?.strava_athlete_id === body.owner_id)
+            if (match) {
+              const msg = formatActivityMessage(record)
+              sendText(match.whatsapp_group_id, msg).catch(e =>
+                console.error('WA notification error:', e)
+              )
+            }
           }
         }
       }
