@@ -4,3 +4,219 @@ Loading sheet...
 Upserting 9 activities to Supabase...
   9/9
 Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 9 activities to Supabase...
+  9/9
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 9 activities to Supabase...
+  9/9
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 9 activities to Supabase...
+  9/9
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 11 activities to Supabase...
+  11/11
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 11 activities to Supabase...
+  11/11
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 12 activities to Supabase...
+  12/12
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 12 activities to Supabase...
+  12/12
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 12 activities to Supabase...
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 187, in handle_request
+    raise exc
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 150, in handle_request
+    status, headers = self._receive_response(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 294, in _receive_response
+    event = self._receive_stream_event(request, stream_id)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 336, in _receive_stream_event
+    self._receive_events(request, stream_id)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 364, in _receive_events
+    events = self._read_incoming_data(request)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 455, in _read_incoming_data
+    raise exc
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_sync/http2.py", line 441, in _read_incoming_data
+    data = self._network_stream.read(self.READ_NUM_BYTES, timeout)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_backends/sync.py", line 128, in read
+    return self._sock.recv(max_bytes)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/contextlib.py", line 137, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/ClaudeCode/matitrainer-web/supabase/sync_to_supabase.py", line 111, in <module>
+    main()
+  File "/Users/matiasgutierrez/ClaudeCode/matitrainer-web/supabase/sync_to_supabase.py", line 105, in main
+    supabase.table('activities').upsert(batch).execute()
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/postgrest/_sync/request_builder.py", line 47, in execute
+    r = self.request.send()
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/postgrest/base_request_builder.py", line 82, in send
+    return self.session.request(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/contextlib.py", line 137, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout: The read operation timed out
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 12 activities to Supabase...
+  12/12
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 12 activities to Supabase...
+  12/12
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connection.py", line 198, in _new_conn
+    sock = connection.create_connection(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/socket.py", line 954, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connectionpool.py", line 1093, in _validate_conn
+    conn.connect()
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connection.py", line 753, in connect
+    self.sock = sock = self._new_conn()
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connection.py", line 205, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x7fba78d85280>: Failed to resolve 'oauth2.googleapis.com' ([Errno 8] nodename nor servname provided, or not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/requests/adapters.py", line 667, in send
+    resp = conn.urlopen(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/urllib3/util/retry.py", line 519, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url: /token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fba78d85280>: Failed to resolve 'oauth2.googleapis.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/auth/transport/requests.py", line 187, in __call__
+    response = self.session.request(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/requests/adapters.py", line 700, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url: /token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fba78d85280>: Failed to resolve 'oauth2.googleapis.com' ([Errno 8] nodename nor servname provided, or not known)"))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/matiasgutierrez/ClaudeCode/matitrainer-web/supabase/sync_to_supabase.py", line 111, in <module>
+    main()
+  File "/Users/matiasgutierrez/ClaudeCode/matitrainer-web/supabase/sync_to_supabase.py", line 58, in main
+    rows = read_sheet(f'{SHEET}!A1:W300')
+  File "/Users/matiasgutierrez/ClaudeCode/MatiTrainer/sheets_client.py", line 33, in read_sheet
+    service = get_service()
+  File "/Users/matiasgutierrez/ClaudeCode/MatiTrainer/sheets_client.py", line 23, in get_service
+    creds.refresh(Request())
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/oauth2/credentials.py", line 409, in refresh
+    ) = reauth.refresh_grant(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/oauth2/reauth.py", line 333, in refresh_grant
+    response_status_ok, response_data, retryable_error = _client._token_endpoint_request_no_throw(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/oauth2/_client.py", line 192, in _token_endpoint_request_no_throw
+    response = request(
+  File "/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/auth/transport/requests.py", line 194, in __call__
+    raise new_exc from caught_exc
+google.auth.exceptions.TransportError: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url: /token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fba78d85280>: Failed to resolve 'oauth2.googleapis.com' ([Errno 8] nodename nor servname provided, or not known)"))
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 14 activities to Supabase...
+  14/14
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 16 activities to Supabase...
+  16/16
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 17 activities to Supabase...
+  17/17
+Done!
+/Users/matiasgutierrez/opt/anaconda3/lib/python3.9/site-packages/google/api_core/_python_version_support.py:234: FutureWarning: You are using a non-supported Python version (3.9.13). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+Loading sheet...
+Upserting 17 activities to Supabase...
+  17/17
+Done!

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import crypto from 'node:crypto'
 import { verifyHmac, sendText } from '@/lib/whatsapp-hub'
 import { processChat, ChatMessage } from '@/lib/chat-engine'
+import { detectAlertsForTrainee } from '@/lib/readiness-alerts'
 
 const PROJECT_ID = process.env.HUB_PROJECT_ID || 'matitrainer'
 
@@ -172,6 +173,8 @@ async function handlePollVote(body: {
       .from('matitrainer_sessions')
       .select(`
         whatsapp_group_id,
+        trainer_id,
+        trainee_id,
         trainer:matitrainer_users!trainer_id(display_name),
         trainee:matitrainer_users!trainee_id(display_name)
       `)
@@ -191,6 +194,20 @@ async function handlePollVote(body: {
         `💬 _${trainer?.display_name}: ¡Gracias por completar la encuesta! Voy a revisar tus respuestas para ajustar el próximo entrenamiento. 💪_`,
       ].join('\n')
       await sendText(sessionData.whatsapp_group_id!, msg)
+
+      // Phase 8 — run readiness alert detector after each completed survey.
+      // Defer with `after()` so the webhook response isn't blocked.
+      const traineeId = sessionData.trainee_id as string | null
+      const trainerId = sessionData.trainer_id as string | null
+      if (traineeId && trainerId) {
+        after(async () => {
+          try {
+            await detectAlertsForTrainee(traineeId, trainerId)
+          } catch (e) {
+            console.error('[readiness-alerts] detector failed', e)
+          }
+        })
+      }
     }
   }
 }
