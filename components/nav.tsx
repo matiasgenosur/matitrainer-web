@@ -9,12 +9,22 @@ const links = [
   { href: '/activities', label: 'Actividades' },
   { href: '/analytics', label: 'Análisis' },
   { href: '/training', label: 'Plan' },
+  { href: '/agenda', label: 'Agenda' },
   { href: '/predictor', label: 'Predictor' },
   { href: '/trainer', label: 'Entrenador' },
 ]
 
+const trainerLinks = [
+  { href: '/trainer', label: 'Atletas' },
+  { href: '/trainer/calendar', label: 'Calendario' },
+  { href: '/trainer/sessions/new', label: 'Nueva sesión' },
+  { href: '/trainer/templates', label: 'Plantillas' },
+  { href: '/trainer/exercises', label: 'Ejercicios' },
+]
+
 export default function Nav() {
   const pathname = usePathname()
+  const inTrainer = pathname?.startsWith('/trainer') ?? false
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
@@ -31,7 +41,10 @@ export default function Nav() {
           {/* Links */}
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
             {links.map((link) => {
-              const isActive = pathname === link.href
+              const isActive =
+                link.href === '/trainer'
+                  ? inTrainer
+                  : pathname === link.href
               return (
                 <Link
                   key={link.href}
@@ -56,6 +69,32 @@ export default function Nav() {
             </div>
           </div>
         </div>
+
+        {/* Trainer sub-nav */}
+        {inTrainer && (
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-2 -mt-1">
+            {trainerLinks.map((link) => {
+              const isActive =
+                link.href === '/trainer'
+                  ? pathname === '/trainer'
+                  : pathname?.startsWith(link.href)
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap',
+                    isActive
+                      ? 'text-violet-300 bg-violet-500/10'
+                      : 'text-gray-500 hover:text-white hover:bg-white/5'
+                  )}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </div>
     </nav>
   )
