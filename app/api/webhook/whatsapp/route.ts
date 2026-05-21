@@ -210,7 +210,8 @@ async function handleTextMessage(body: {
   }
 
   // Only respond when mentioned with @MatiBot (case-insensitive)
-  const BOT_MENTION = /@matibot/i
+  // WhatsApp wraps mentions with Unicode directional isolates (U+2068, U+2069)
+  const BOT_MENTION = /@[\u2068]?matibot[\u2069]?/i
   if (!BOT_MENTION.test(body.text)) return
 
   // Find active session for this group
@@ -220,7 +221,7 @@ async function handleTextMessage(body: {
     return
   }
 
-  // Strip the @MatiBot mention from the message
+  // Strip the @MatiBot mention (with possible Unicode wrappers) from the message
   const cleanText = body.text.replace(BOT_MENTION, '').trim()
   if (!cleanText) return
 
