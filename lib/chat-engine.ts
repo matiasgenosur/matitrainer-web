@@ -104,6 +104,17 @@ Puede guardar uno o varios días a la vez. Los días existentes se sobreescriben
       },
     },
   },
+  {
+    name: 'update_timezone',
+    description: 'Actualiza la zona horaria del trainee. Usar cuando el usuario confirma un cambio de timezone.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        timezone: { type: 'string', description: 'IANA timezone (ej: America/Santiago, America/Sao_Paulo)' },
+      },
+      required: ['timezone'],
+    },
+  },
 ]
 
 // ─── Tool execution ──────────────────────────────────────────────────────────
@@ -158,6 +169,16 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
     if (error) return `Error: ${error.message}`
     if (!data?.length) return 'No hay plan guardado para los próximos días.'
     return JSON.stringify(data)
+  }
+
+  if (name === 'update_timezone') {
+    const tz = input.timezone as string
+    const { error } = await supabase
+      .from('matitrainer_sessions')
+      .update({ timezone: tz })
+      .eq('status', 'active')
+    if (error) return `Error: ${error.message}`
+    return `Timezone actualizado a ${tz}. Las encuestas de readiness se enviarán a las 8AM en esa zona horaria.`
   }
 
   return 'Herramienta desconocida'

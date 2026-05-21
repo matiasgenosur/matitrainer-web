@@ -152,7 +152,7 @@ export async function POST(request: Request) {
 
             const { data: sessions } = await supabase
               .from('matitrainer_sessions')
-              .select('whatsapp_group_id, trainee:matitrainer_users!trainee_id(strava_athlete_id)')
+              .select('id, whatsapp_group_id, timezone, trainee:matitrainer_users!trainee_id(strava_athlete_id)')
               .eq('status', 'active')
               .not('whatsapp_group_id', 'is', null)
 
@@ -163,6 +163,19 @@ export async function POST(request: Request) {
               sendText(match.whatsapp_group_id, msg).catch(e =>
                 console.error('WA notification error:', e)
               )
+
+              // Detect timezone change from Strava activity
+              // Strava returns timezone like "(GMT-03:00) America/Santiago"
+              const stravaTz = activity.timezone
+              if (stravaTz) {
+                const tzName = stravaTz.replace(/^\([^)]+\)\s*/, '') // Extract "America/Santiago"
+                if (tzName && match.timezone && tzName !== match.timezone) {
+                  sendText(
+                    match.whatsapp_group_id,
+                    `🌍 Detecté que tu actividad fue en *${tzName}* (antes: ${match.timezone}).\n¿Actualizo tu zona horaria? Responde:\n@MatiBot sí, actualizar timezone`
+                  ).catch(() => {})
+                }
+              }
             }
           }
         }

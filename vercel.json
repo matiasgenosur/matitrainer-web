@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/readiness-survey",
-      "schedule": "0 12 * * *"
+      "schedule": "0 * * * *"
     }
   ]
 }
