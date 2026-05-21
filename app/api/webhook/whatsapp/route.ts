@@ -209,12 +209,20 @@ async function handleTextMessage(body: {
     if (handled) return
   }
 
+  // Only respond when mentioned with @MatiBot (case-insensitive)
+  const BOT_MENTION = /@matibot/i
+  if (!BOT_MENTION.test(body.text)) return
+
   // Find active session for this group
   const session = await getActiveSession(body.chat_id)
   if (!session) {
     await sendText(body.chat_id, '⚠️ Este grupo no está vinculado a MatiTrainer. Envía un bind_token para vincularlo.')
     return
   }
+
+  // Strip the @MatiBot mention from the message
+  const cleanText = body.text.replace(BOT_MENTION, '').trim()
+  if (!cleanText) return
 
   const supabase = getSupabase()
 
@@ -232,13 +240,13 @@ async function handleTextMessage(body: {
       role: h.role as 'user' | 'assistant',
       content: h.content,
     })),
-    { role: 'user' as const, content: `[${body.from_name}]: ${body.text}` },
+    { role: 'user' as const, content: `[${body.from_name}]: ${cleanText}` },
   ]
 
   // Save user message
   await supabase.from('chat_history').insert({
     role: 'user',
-    content: `[${body.from_name}]: ${body.text}`,
+    content: `[${body.from_name}]: ${cleanText}`,
     channel: 'whatsapp',
     session_id: session.id,
   })
