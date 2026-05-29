@@ -64,6 +64,31 @@ export async function sendPoll(
   }
 }
 
+function formatHrZones(record: {
+  z1_min?: number | null
+  z2_min?: number | null
+  z3_min?: number | null
+  z4_min?: number | null
+  z5_min?: number | null
+}): string | null {
+  const mins = [record.z1_min, record.z2_min, record.z3_min, record.z4_min, record.z5_min].map(
+    (v) => (typeof v === 'number' && v > 0 ? v : 0)
+  )
+  const total = mins.reduce((s, v) => s + v, 0)
+  if (total <= 0) return null
+
+  const pcts = mins.map((v) => (v / total) * 100)
+  const BAR_LEN = 10
+  const labels = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']
+  const lines = labels.map((lbl, i) => {
+    const pct = pcts[i]
+    const filled = Math.round((pct / 100) * BAR_LEN)
+    const bar = '▓'.repeat(filled) + '░'.repeat(BAR_LEN - filled)
+    return ` ${lbl} ${bar} ${pct.toFixed(0)}%`
+  })
+  return ['📊 *Zonas FC*', ...lines].join('\n')
+}
+
 export function formatActivityMessage(record: {
   name: string
   type: string
@@ -74,6 +99,11 @@ export function formatActivityMessage(record: {
   elevation_m: number
   strava_link: string
   session_type?: string
+  z1_min?: number | null
+  z2_min?: number | null
+  z3_min?: number | null
+  z4_min?: number | null
+  z5_min?: number | null
 }): string {
   const icon = record.type === 'Hike' ? '🥾' : record.type === 'Soccer' ? '⚽' : '🏃'
   const dist = record.distance_km > 0 ? `${record.distance_km.toFixed(1)} km` : '—'
@@ -88,6 +118,7 @@ export function formatActivityMessage(record: {
 
   const hr = record.avg_hr ? `${Math.round(record.avg_hr)} bpm` : '—'
   const elev = record.elevation_m > 0 ? `${Math.round(record.elevation_m)}m` : '—'
+  const zones = formatHrZones(record)
 
   return [
     `${icon} *Actividad completada*`,
@@ -96,6 +127,7 @@ export function formatActivityMessage(record: {
     record.pace_min_km ? `⚡ Ritmo: ${pace}` : null,
     `❤️ FC: ${hr}`,
     record.elevation_m > 0 ? `⛰️ Desnivel: ${elev}` : null,
+    zones,
     `🔗 ${record.strava_link}`,
   ]
     .filter(Boolean)
