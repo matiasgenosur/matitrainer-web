@@ -325,6 +325,17 @@ export async function POST(request: Request) {
 
   console.log(`WA webhook: type=${body.type} from=${body.from_number || body.from} chat=${body.chat_id || '—'}`)
 
+  // Debug: persist chat_id for groups so we can look up JIDs without log access.
+  if (body.chat_id) {
+    try {
+      const sb = getSupabase()
+      await sb.from('processed_messages').upsert(
+        { hub_message_id: `chat:${body.chat_id}`, processed_at: new Date().toISOString() },
+        { onConflict: 'hub_message_id' }
+      )
+    } catch { /* best-effort */ }
+  }
+
   const type = body.type || request.headers.get('x-hub-event')
 
   if (type === 'text' && body.text) {
