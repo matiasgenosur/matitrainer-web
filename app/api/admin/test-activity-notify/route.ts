@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendText, formatActivityMessage } from '@/lib/whatsapp-hub'
+import { formatActivityMessage } from '@/lib/whatsapp-hub'
 
 export async function POST(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key')
@@ -41,11 +41,22 @@ export async function POST(req: NextRequest) {
   }
 
   const msg = formatActivityMessage(activity)
-  const messageId = await sendText(body.to, msg)
+
+  // Inline hub call so we can surface the actual response body for debugging
+  const hubRes = await fetch(`${process.env.HUB_URL}/send`, {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.HUB_API_KEY!,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ to: body.to, message: msg }),
+  })
+  const hubBody = await hubRes.text()
 
   return NextResponse.json({
-    ok: !!messageId,
-    message_id: messageId,
+    ok: hubRes.ok,
+    hub_status: hubRes.status,
+    hub_body: hubBody,
     preview: msg,
   })
 }
