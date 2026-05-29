@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { sendText, formatActivityMessage } from '@/lib/whatsapp-hub'
 
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.ADMIN_SECRET}`) {
+  const key = req.nextUrl.searchParams.get('key')
+  if (key !== process.env.TRAINER_SECRET) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
