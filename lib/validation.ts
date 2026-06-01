@@ -94,9 +94,9 @@ export const workoutBlockInputSchema = z.object({
 })
 
 export const plannedSessionInputSchema = z.object({
-  // trainer_id is injected server-side from the authenticated trainer; the
-  // client may omit it (and forging it has no effect).
-  trainer_id: z.string().uuid().optional(),
+  // trainer_id is injected server-side from the authenticated trainer; any
+  // value the client sends here is ignored, so accept anything.
+  trainer_id: z.any().optional(),
   trainee_id: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   name: z.string().min(1).max(200),
