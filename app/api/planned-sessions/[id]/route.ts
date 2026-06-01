@@ -38,7 +38,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   if (!parsed.success) return badRequest('Invalid session input', parsed.error.format())
 
   try {
-    const updated = await updatePlannedSession(id, parsed.data)
+    const updated = await updatePlannedSession(id, {
+      ...parsed.data,
+      trainer_id: auth.trainerId,
+    })
     return NextResponse.json(updated)
   } catch (e) {
     return NextResponse.json(

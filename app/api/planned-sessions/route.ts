@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return badRequest('Invalid session input', parsed.error.format())
 
   try {
-    const created = await createPlannedSession(parsed.data)
+    const created = await createPlannedSession({
+      ...parsed.data,
+      trainer_id: auth.trainerId,
+    })
     return NextResponse.json(created, { status: 201 })
   } catch (e) {
     return NextResponse.json(
