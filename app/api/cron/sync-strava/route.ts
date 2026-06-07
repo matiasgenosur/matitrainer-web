@@ -75,9 +75,14 @@ function mapActivity(a: any) {
 }
 
 export async function GET(request: Request) {
-  // Verify Vercel cron secret
+  // Accept either Vercel cron secret (header) or trainer key (query param)
+  // so the sync can be triggered manually from the trainer side.
+  const url = new URL(request.url)
+  const trainerKey = url.searchParams.get('key')
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronOk = authHeader === `Bearer ${process.env.CRON_SECRET}`
+  const trainerOk = trainerKey != null && trainerKey === process.env.TRAINER_SECRET
+  if (!cronOk && !trainerOk) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
