@@ -26,7 +26,8 @@ export async function sendText(to: string, text: string): Promise<string | null>
       return null
     }
     const data = await res.json()
-    return data.message_id ?? null
+    // Hub returns either {message_id} or {status: 'sent'} on success.
+    return data.message_id ?? (data.status === 'sent' ? 'sent' : null)
   } catch (e) {
     console.error('Hub sendText failed:', e)
     return null

@@ -148,8 +148,6 @@ export async function POST(request: Request) {
             .single()
 
           if (!alreadySent) {
-            await supabase.from('processed_messages').insert({ hub_message_id: notifKey }).then(() => {}, () => {})
-
             const { data: sessions } = await supabase
               .from('matitrainer_sessions')
               .select('id, whatsapp_group_id, timezone, trainee:matitrainer_users!trainee_id(strava_athlete_id)')
@@ -160,9 +158,18 @@ export async function POST(request: Request) {
             const match = sessions?.find((s: any) => s.trainee?.strava_athlete_id === body.owner_id)
             if (match) {
               const msg = formatActivityMessage(record)
-              sendText(match.whatsapp_group_id, msg).catch(e =>
+              // Await the send so the serverless function doesn't freeze
+              // mid-fetch. Only mark as notified if the hub actually accepted it.
+              const sent = await sendText(match.whatsapp_group_id, msg).catch(e => {
                 console.error('WA notification error:', e)
-              )
+                return null
+              })
+              if (sent !== null) {
+                await supabase
+                  .from('processed_messages')
+                  .insert({ hub_message_id: notifKey })
+                  .then(() => {}, () => {})
+              }
 
               // Detect timezone change from Strava activity
               // Strava returns timezone like "(GMT-03:00) America/Santiago"
@@ -170,10 +177,10 @@ export async function POST(request: Request) {
               if (stravaTz) {
                 const tzName = stravaTz.replace(/^\([^)]+\)\s*/, '') // Extract "America/Santiago"
                 if (tzName && match.timezone && tzName !== match.timezone) {
-                  sendText(
+                  await sendText(
                     match.whatsapp_group_id,
                     `🌍 Detecté que tu actividad fue en *${tzName}* (antes: ${match.timezone}).\n¿Actualizo tu zona horaria? Responde:\n@MatiBot sí, actualizar timezone`
-                  ).catch(() => {})
+                  ).catch(() => null)
                 }
               }
             }
@@ -184,9 +191,10 @@ export async function POST(request: Request) {
       console.error('Webhook detail sync error:', e)
     }
 
-    // Also trigger general cron to recompute rolling metrics
+    // Also trigger general cron to recompute rolling metrics.
+    // Await so the serverless function doesn't freeze mid-request.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://matitrainer-web.vercel.app'
-    fetch(`${appUrl}/api/cron/sync-strava`, {
+    await fetch(`${appUrl}/api/cron/sync-strava`, {
       headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
     }).catch(() => {})
   }
